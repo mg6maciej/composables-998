@@ -232,7 +232,38 @@ contract('Composable', function(accounts) {
     });
     assert(tx != undefined, 'no tx using safeTransferFrom');
   });
-  
+
+  it('should transfer grandchild to address', async () => {
+    // create grandchild
+    const grandchild = await sampleNFT.mint721(alice);
+    const grandchildTokenId = grandchild.logs[0].args._tokenId;
+    // create child
+    const child = await composable.mint721(alice);
+    const childTokenId = child.logs[0].args._tokenId;
+    // transfer grandchild as possession of child
+    const safeTransferFrom1 = SampleNFT.abi.find(f => f.name === 'safeTransferFrom' && f.inputs.length === 4);
+    const transferMethodTransactionData1 = web3Abi.encodeFunctionCall(
+      safeTransferFrom1, [alice, composable.address, grandchildTokenId, web3Utils.fromAscii(childTokenId.toString(), 32)]
+    );
+    await web3.eth.sendTransaction({
+      from: alice, to: sampleNFT.address, data: transferMethodTransactionData1, value: 0, gas: 500000
+    });
+    // create parent
+    const comp2 = await Composable.new("Composable Two", "COMP2");
+    const parent = await comp2.mint721(alice);
+    const parentTokenId = parent.logs[0].args._tokenId;
+    // transfer child as possession of parent
+    const safeTransferFrom2 = Composable.abi.find(f => f.name === 'safeTransferFrom' && f.inputs.length === 4);
+    const transferMethodTransactionData2 = web3Abi.encodeFunctionCall(
+      safeTransferFrom2, [alice, comp2.address, childTokenId, web3Utils.fromAscii(parentTokenId.toString(), 32)]
+    );
+    await web3.eth.sendTransaction({
+      from: alice, to: composable.address, data: transferMethodTransactionData2, value: 0, gas: 500000
+    });
+    // send grandchild to my address
+    // ...
+  });
+
   /**************************************
   * Checking Arrays
   **************************************/
